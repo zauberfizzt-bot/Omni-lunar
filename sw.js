@@ -1,4 +1,4 @@
-const CACHE='omni-web-38-v12';
+const CACHE='omni-web-38-v13';
 const ROOT=new URL('./',self.location.href).href;
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./ephemerides.js','./web-app.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./icon-maskable.png','./icon-notification.png','./install.js','./version.json','./push-config.json'])).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('omni-web-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
