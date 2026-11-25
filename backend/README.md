@@ -1,0 +1,5 @@
+# OMNI Lunar — registro automático Web Push
+
+Servicio HTTPS independiente de Pages. No publicar secretos ni subscriptions en GitHub. Montar un volumen persistente privado en /data, configurar OMNI_REGISTRY_FILE=/data/devices.json, OMNI_CONFIG (las mismas claves VAPID del workflow) y OMNI_REGISTRY_TOKEN (aleatorio, al menos 32 caracteres). Ejecutar npm install y npm start, o usar Dockerfile. Colocar detrás de HTTPS. Instancia única con volumen persistente. Validar /health y la recepción de una prueba real en Android antes de anunciar disponibilidad.
+
+En GitHub Actions configurar los secretos OMNI_REGISTRY_URL (URL HTTPS del servicio) y OMNI_REGISTRY_TOKEN. Publicar el mismo URL en push-config.json (solo URL, nunca el token). El motor conserva los dispositivos existentes en OMNI_DEVICES y añade los registrados por el servicio; el registro y la prueba de notificaciones son automáticos. No se requiere cuenta al usuario. El backend aplica validación de destinos push y limita pruebas; para lanzamiento masivo añadir protección y monitorización de abuso a nivel de proxy, backups y capacidad de almacenamiento.

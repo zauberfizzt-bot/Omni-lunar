@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import vm from 'node:vm';
 import push from 'web-push';
 const cfg=JSON.parse(process.env.OMNI_CONFIG||'{}'), devices=JSON.parse(process.env.OMNI_DEVICES||'[]');
+if(process.env.OMNI_REGISTRY_URL&&process.env.OMNI_REGISTRY_TOKEN){try{const u=new URL(process.env.OMNI_REGISTRY_URL);if(u.protocol!=='https:')throw Error('HTTPS required');const r=await fetch(u.href.replace(/\/$/,'')+'/admin/devices',{headers:{Authorization:'Bearer '+process.env.OMNI_REGISTRY_TOKEN},signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Registry HTTP '+r.status);const entries=await r.json();if(!Array.isArray(entries))throw Error('Invalid registry');const seen=new Set(devices.map(d=>d.subscription?.endpoint));for(const d of entries){if(d.subscription?.endpoint&&!seen.has(d.subscription.endpoint)){devices.push(d);seen.add(d.subscription.endpoint)}}}catch(e){console.log('Automatic registry unavailable: '+e.message)}}
 const data=vm.runInNewContext(fs.readFileSync('ephemerides.js','utf8')+'\nDATA');
 const fallback=JSON.parse(fs.readFileSync('fallback.json','utf8'));
 const file='.omni-state/state.json', state=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};

@@ -39,6 +39,8 @@ jobs:
         env:
           OMNI_CONFIG: ${{ secrets.OMNI_CONFIG }}
           OMNI_DEVICES: ${{ secrets.OMNI_DEVICES }}
+          OMNI_REGISTRY_URL: ${{ secrets.OMNI_REGISTRY_URL }}
+          OMNI_REGISTRY_TOKEN: ${{ secrets.OMNI_REGISTRY_TOKEN }}
           OMNI_TEST: ${{ inputs.test }}
           OMNI_FORCE: ${{ github.event_name == 'push' }}
         run: node scripts/dispatch.mjs
