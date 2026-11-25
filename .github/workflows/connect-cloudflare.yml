@@ -63,6 +63,9 @@ jobs:
           git add push-config.json version.json web-app.js sw.js
           git commit -m "OMNI: connect verified Cloudflare notification backend"
           git push origin HEAD:main
+      - name: Record anonymous server diagnostics
+        run: |
+          curl -fsS --max-time 15 "$REGISTRY/health" | jq .
       - name: Publish connected application
         env:
           GH_TOKEN: ${{ github.token }}
