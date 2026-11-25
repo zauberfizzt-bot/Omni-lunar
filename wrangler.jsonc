@@ -1,5 +1,5 @@
 {
-  "name": "omni-lunar-push",
+  "name": "omni-lunar",
   "main": "cloudflare/worker.mjs",
   "compatibility_date": "2026-11-25",
   "workers_dev": true,

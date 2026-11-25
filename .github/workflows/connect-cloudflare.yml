@@ -1,0 +1,69 @@
+name: OMNI Lunar · Conectar servidor Cloudflare
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['wrangler.jsonc', 'cloudflare/**', '.github/workflows/connect-cloudflare.yml']
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: omni-cloudflare-connect
+  cancel-in-progress: false
+jobs:
+  connect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      REGISTRY: https://omni-lunar.zauberfizzt.workers.dev
+      ORIGIN: https://zauberfizzt-bot.github.io
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Verify deployed worker before connecting
+        run: |
+          set -eu
+          for i in $(seq 1 24); do
+            if curl -fsS --max-time 10 "$REGISTRY/health" | jq -e '.ok == true and .backend == "cloudflare"' >/dev/null &&
+               curl -fsS --max-time 10 -H "Origin: $ORIGIN" -D /tmp/omni-headers "$REGISTRY/config" -o /tmp/omni-config &&
+               jq -e '.publicKey | type == "string" and test("^[A-Za-z0-9_-]{87}$")' /tmp/omni-config >/dev/null &&
+               grep -qi "^access-control-allow-origin: $ORIGIN" /tmp/omni-headers; then
+              echo "Worker health, persistent public key and CORS verified"
+              exit 0
+            fi
+            echo "Worker not ready, attempt $i"
+            sleep 15
+          done
+          echo "Cloudflare worker not verified; app configuration unchanged" >&2
+          exit 1
+      - name: Connect existing app only after successful verification
+        run: |
+          set -eu
+          git config user.name 'OMNI Lunar'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --ff-only origin main
+          if [ "$(jq -r .registry push-config.json)" = "$REGISTRY" ]; then
+            echo 'Already connected'
+            exit 0
+          fi
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const f='version.json',v=JSON.parse(fs.readFileSync(f)),p=v.version.split('.').map(Number);p[2]++;
+          const version=p.join('.'),release=new Date().toISOString().slice(0,10)+'-cloudflare-'+version;
+          let s=fs.readFileSync('web-app.js','utf8'),sw=fs.readFileSync('sw.js','utf8');
+          if(!/const VERSION='[^']+', RELEASE='[^']+';/.test(s)||!/omni-web-38-v\d+/.test(sw))throw Error('Version format changed');
+          s=s.replace(/const VERSION='[^']+', RELEASE='[^']+';/,"const VERSION='"+version+"', RELEASE='"+release+"';");
+          sw=sw.replace(/omni-web-38-v\d+/,'omni-web-38-v'+p[2]);
+          fs.writeFileSync('web-app.js',s);fs.writeFileSync('sw.js',sw);fs.writeFileSync(f,JSON.stringify({version,release})+'\n');
+          fs.writeFileSync('push-config.json',JSON.stringify({registry:process.env.REGISTRY})+'\n');
+          JS
+          node --check web-app.js
+          node --check sw.js
+          git add push-config.json version.json web-app.js sw.js
+          git commit -m "OMNI: connect verified Cloudflare notification backend"
+          git push origin HEAD:main
+      - name: Publish connected application
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publish-web.yml --ref main
