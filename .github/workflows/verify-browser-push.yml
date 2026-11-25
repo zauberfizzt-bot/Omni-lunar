@@ -1,0 +1,31 @@
+name: OMNI Lunar · Verificar acceso web al servidor
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['index.html','push-config.json','.github/workflows/verify-browser-push.yml']
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --ignore-scripts playwright
+      - run: npx playwright install --with-deps chromium
+      - name: Verify published browser CSP and actual CORS
+        run: |
+          node --input-type=module <<'JS'
+          import {chromium} from 'playwright';
+          import fs from 'node:fs';
+          const root='https://zauberfizzt-bot.github.io/Omni-lunar/',expected=JSON.parse(fs.readFileSync('version.json','utf8')).release,registry=JSON.parse(fs.readFileSync('push-config.json','utf8')).registry;
+          let ok=false;
+          for(let i=0;i<36;i++){try{const r=await fetch(root+'version.json?t='+Date.now(),{cache:'no-store'});if((await r.json()).release===expected){ok=true;break}}catch{}await new Promise(r=>setTimeout(r,5000))}
+          if(!ok)throw Error('Expected web release is not published');
+          const browser=await chromium.launch({headless:true});
+          try{const page=await browser.newPage({serviceWorkers:'block'});await page.goto(root+'?verify='+Date.now());const result=await page.evaluate(async url=>{const health=await fetch(url+'/health',{cache:'no-store'}).then(r=>r.json());const key=await fetch(url+'/config',{cache:'no-store'}).then(r=>r.json());const probe=await fetch(url+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});return {health,validPublicKey:/^[A-Za-z0-9_-]{87}$/.test(key.publicKey),postStatus:probe.status}},registry);console.log(JSON.stringify(result));if(!result.health.ok||!result.validPublicKey||result.postStatus!==400)throw Error('Browser cannot reach registry correctly');}finally{await browser.close()}
+          JS
