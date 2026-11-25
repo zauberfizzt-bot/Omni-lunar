@@ -12,6 +12,8 @@ on:
       - 'manifest.webmanifest'
       - 'version.json'
       - 'icon*'
+      - 'push-config.json'
+      - 'scripts/build-icons.py'
       - '.github/workflows/publish-web.yml'
 permissions:
   contents: read
@@ -36,8 +38,10 @@ jobs:
           node --check install.js
           node --check ephemerides.js
           node -e 'for(const f of ["version.json","manifest.webmanifest"])JSON.parse(require("fs").readFileSync(f,"utf8"))'
+          python -m pip install Pillow==11.3.0
+          python scripts/build-icons.py
           mkdir site
-          cp index.html web-app.js sw.js install.js ephemerides.js manifest.webmanifest version.json icon.svg icon-192.png icon-512.png icon-maskable.png resonances.json delivery-status.json fallback.json .nojekyll site/
+          cp index.html web-app.js sw.js install.js ephemerides.js manifest.webmanifest version.json push-config.json icon.svg icon-192.png icon-512.png icon-maskable.png resonances.json delivery-status.json fallback.json .nojekyll site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
