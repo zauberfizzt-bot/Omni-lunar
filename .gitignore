@@ -1,0 +1,4 @@
+.omni-state/
+node_modules/
+.env
+*.key

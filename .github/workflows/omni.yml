@@ -1,0 +1,47 @@
+name: OMNI Lunar · Resonancias y avisos
+on:
+  workflow_dispatch:
+    inputs:
+      test:
+        description: Enviar una notificación de prueba a los dispositivos registrados
+        type: boolean
+        default: false
+  schedule:
+    - cron: '3-58/5 * * * *'
+permissions:
+  contents: write
+concurrency:
+  group: omni-resonances
+  cancel-in-progress: false
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .omni-state
+          key: omni-push-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            omni-push-v1-
+      - run: npm install --no-save --no-package-lock --ignore-scripts web-push@3.6.7
+      - name: Generate and dispatch
+        env:
+          OMNI_CONFIG: ${{ secrets.OMNI_CONFIG }}
+          OMNI_DEVICES: ${{ secrets.OMNI_DEVICES }}
+          OMNI_TEST: ${{ inputs.test }}
+        run: node scripts/dispatch.mjs
+      - uses: actions/cache/save@v4
+        with:
+          path: .omni-state
+          key: omni-push-v1-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Publish fresh messages
+        run: |
+          git config user.name 'OMNI Lunar'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add resonances.json
+          git diff --cached --quiet || (git commit -m 'OMNI: actualizar resonancias' && git push)
