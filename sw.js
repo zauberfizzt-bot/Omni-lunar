@@ -1,0 +1,7 @@
+const CACHE='omni-web-38-v1';
+const ROOT=new URL('./',self.location.href).href;
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./ephemerides.js','./web-app.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'])).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('omni-web-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==self.location.origin||!u.href.startsWith(ROOT))return;if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).catch(()=>caches.match('./index.html')));return}e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});
+self.addEventListener('push',e=>{let m={};try{m=e.data.json()}catch{};e.waitUntil(self.registration.showNotification(m.title||'OMNI Lunar',{body:m.body||'OMNI · Dualidad en equilibrio dinámico fractal.',icon:'./icon-192.png',badge:'./icon-192.png',tag:m.tag||'omni-'+Date.now(),data:{url:ROOT}}));});
+self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{const c=cs.find(c=>c.url.startsWith(ROOT));return c?c.focus():self.clients.openWindow(ROOT)}));});
