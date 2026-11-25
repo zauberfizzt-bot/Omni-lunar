@@ -1,0 +1,27 @@
+{
+  "name": "omni-lunar-push",
+  "main": "cloudflare/worker.mjs",
+  "compatibility_date": "2026-11-25",
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "REGISTRY",
+        "class_name": "Registry"
+      },
+      {
+        "name": "DEVICES",
+        "class_name": "Device"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "Registry",
+        "Device"
+      ]
+    }
+  ]
+}
