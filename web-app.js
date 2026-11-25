@@ -6,8 +6,8 @@ const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator
 const support=()=>('serviceWorker'in navigator)&&('PushManager'in window)&&('Notification'in window);
 const btn=(text,fn)=>{const b=document.createElement('button');b.textContent=text;b.onclick=fn;return b};
 let registration=null, subscription=null, bank=null, lastKey='';
-const old=el('alertsTitle').closest('.settingBlock');old.hidden=true;
-el('widgetHelp').closest('.settingBlock').hidden=true;
+const old=el('alertsTitle').closest('.settingBlock');old.style.display='none';
+el('widgetHelp').closest('.settingBlock').style.display='none';
 const block=document.createElement('div');block.className='settingBlock';old.after(block);
 const title=document.createElement('strong');title.textContent=tr('Notificaciones','Notifications','Notificações');block.append(title);
 const status=document.createElement('p');status.setAttribute('role','status');block.append(status);
@@ -22,6 +22,6 @@ async function exportCode(){if(!subscription)return;const code=JSON.stringify({s
 async function init(){refresh();if(!('serviceWorker'in navigator))return;try{await navigator.serviceWorker.register('./sw.js');registration=await navigator.serviceWorker.ready;if(support())subscription=await registration.pushManager.getSubscription();refresh();if(standalone()&&support()&&!subscription&&Notification.permission==='default'&&!localStorage.getItem('omni-web-asked')){localStorage.setItem('omni-web-asked','1');el('permissionTitle').textContent=tr('Activar notificaciones','Enable notifications','Ativar notificações');el('permissionBody').textContent=tr('Es importante que aceptes las notificaciones para que OMNI Lunar cumpla su función completa y puedas explorar la alineación del ciclo.','Enable notifications to experience the full OMNI Lunar cycle.','Aceite as notificações para experimentar o ciclo completo de OMNI Lunar.');el('permissionAllow').textContent=tr('Continuar','Continue','Continuar');el('permissionLater').textContent=tr('Ahora no','Not now','Agora não');el('permissionAllow').onclick=()=>{el('permissionOverlay').hidden=true;activate()};el('permissionLater').onclick=()=>{el('permissionOverlay').hidden=true};el('permissionOverlay').hidden=false;}}catch(e){status.textContent=tr('Error de registro: ','Registration error: ','Erro de registro: ')+e.message}}
 function fresh(manual){try{const c=oracleContext||context(safe(Date.now()));if(!manual&&lastKey===c.key)return;lastKey=c.key;let opts=bank?.messages?.[lang]?.[c.g];if(!Array.isArray(opts)||!opts.length){if(manual){showMessage(localMessage(c));el('aiState').textContent=tr('Resonancia local','Local resonance','Ressonância local')}return}let recent=history(),available=opts.filter(x=>!recent.includes(x)),list=available.length?available:opts;const msg=remember(list[Math.floor(Math.random()*list.length)]);showMessage(msg);el('aiState').textContent=tr('Gemini · resonancia del ciclo','Gemini · cycle resonance','Gemini · ressonância do ciclo')}catch{}}
 el('fresh').onclick=()=>fresh(true);
-async function loadBank(){try{const u='https://raw.githubusercontent.com/zauberfizzt-bot/Omni-lunar/main/resonances.json';const r=await fetch(u,{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(Date.now()-Date.parse(j.generatedAt)>48*3600000)return;bank=j;lastKey='';fresh(false)}catch{}}
+async function loadBank(){try{const u='./resonances.json?t='+Math.floor(Date.now()/60000);const r=await fetch(u,{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(Date.now()-Date.parse(j.generatedAt)>48*3600000)return;bank=j;lastKey='';fresh(false)}catch{}}
 init();loadBank();setInterval(loadBank,30*60000);setInterval(()=>fresh(false),30000);
 })();
