@@ -24,6 +24,35 @@ const test=btn(tr('Enviar aviso de prueba','Send test notification','Enviar avis
 const copy=btn(tr('Copiar código privado de registro','Copy private registration code','Copiar código privado de registro'),()=>run(exportCode));
 const check=btn(tr('Comprobar conexión','Check connection','Verificar conexão'),()=>run(async()=>{await sync();feedback.textContent=tr('Estado actualizado.','Status refreshed.','Estado atualizado.')}));
 block.append(enable,disable,test,copy,check);
+
+const VERSION='3.8.6', RELEASE='2026-11-25-update-6';
+const updates=document.createElement('div');updates.className='settingBlock';
+const updateTitle=document.createElement('strong');updateTitle.textContent=tr('Actualizaciones','Updates','Atualizações');
+const updateState=document.createElement('p');updateState.setAttribute('role','status');updateState.setAttribute('aria-live','polite');
+const updateVersion=document.createElement('p');updateVersion.textContent=tr('Versión instalada: ','Installed version: ','Versão instalada: ')+VERSION;
+const updateButton=btn(tr('Buscar actualizaciones','Check for updates','Buscar atualizações'),checkUpdate);updateButton.type='button';
+updates.append(updateTitle,updateVersion,updateButton,updateState);block.after(updates);
+try{const expected=sessionStorage.getItem('omni-update-target');if(expected){sessionStorage.removeItem('omni-update-target');updateState.textContent=expected===RELEASE?tr('Aplicación actualizada correctamente.','Application updated successfully.','Aplicativo atualizado com sucesso.'):tr('La actualización todavía no está disponible en este dispositivo. Volvé a intentar.','The update is not available on this device yet. Try again.','A atualização ainda não está disponível neste dispositivo. Tente novamente.')}}catch{}
+async function checkUpdate(){
+if(updateButton.disabled)return;
+updateButton.disabled=true;updateButton.textContent=tr('Buscando…','Checking…','Buscando…');updateState.textContent=tr('Comprobando la versión publicada…','Checking the published version…','Verificando a versão publicada…');
+try{
+const response=await timeout(fetch(new URL('version.json?check='+Date.now(),root).href,{cache:'no-store'}),10000);
+if(!response.ok)throw Error('HTTP '+response.status);
+const latest=await response.json();
+if(typeof latest.release!=='string'||typeof latest.version!=='string'||!latest.release)throw Error(tr('Versión no válida.','Invalid version.','Versão inválida.'));
+if('serviceWorker'in navigator){
+const reg=await timeout(navigator.serviceWorker.getRegistration(),8000);
+if(reg){await timeout(reg.update(),15000);if(reg.waiting)reg.waiting.postMessage({type:'OMNI_SKIP_WAITING'});}
+}
+if(latest.release===RELEASE){updateState.textContent=tr('Ya tenés la última versión publicada: ','You already have the latest published version: ','Você já tem a versão publicada mais recente: ')+VERSION;return}
+updateButton.textContent=tr('Actualizando…','Updating…','Atualizando…');updateState.textContent=tr('Instalando la versión ','Installing version ','Instalando a versão ')+latest.version+'…';
+try{sessionStorage.setItem('omni-update-target',latest.release)}catch{}
+const next=new URL(location.href);next.searchParams.set('omni-update',Date.now().toString());location.replace(next.href);
+}catch(e){updateState.textContent=tr('No se pudo comprobar la actualización. Revisá la conexión y volvé a intentar. ','Could not check for updates. Check your connection and retry. ','Não foi possível verificar a atualização. Verifique a conexão e tente novamente. ')+(e.message||'');}
+finally{updateButton.disabled=false;updateButton.textContent=tr('Buscar actualizaciones','Check for updates','Buscar atualizações')}
+}
+
 function visible(b,v){b.hidden=!v;b.style.display=v?'inline-block':'none'}
 function refresh(){const p=perm(),can=capable();visible(enable,!subscription);visible(disable,!!subscription);visible(test,p==='granted'&&can);visible(copy,!!subscription&&!remote?.registered);visible(check,can);[enable,disable,test,copy,check].forEach(b=>{b.type='button';b.disabled=busyAction});enable.disabled=busyAction||!can||p==='denied';enable.textContent=busyAction&&!subscription?step||tr('Conectando…','Connecting…','Conectando…'):tr('Activar notificaciones','Enable notifications','Ativar notificações');
 if(ios()&&!standalone()){status.textContent=tr('Instalación requerida','Installation required','Instalação necessária');detail.textContent=tr('Safari → Compartir → Añadir a pantalla de inicio. Abrí desde el icono de OMNI.','Safari → Share → Add to Home Screen. Open OMNI from its icon.','Safari → Compartilhar → Adicionar à Tela de Início. Abra pelo ícone OMNI.');return}
