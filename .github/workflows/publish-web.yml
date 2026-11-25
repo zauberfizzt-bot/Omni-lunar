@@ -37,6 +37,8 @@ jobs:
           node --check sw.js
           node --check install.js
           node --check ephemerides.js
+          node --check backend/server.mjs
+          node --check scripts/dispatch.mjs
           node -e 'for(const f of ["version.json","manifest.webmanifest"])JSON.parse(require("fs").readFileSync(f,"utf8"))'
           python -m pip install Pillow==11.3.0
           python scripts/build-icons.py

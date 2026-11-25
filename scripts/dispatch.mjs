@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import vm from 'node:vm';
+import path from 'node:path';
 import push from 'web-push';
-const cfg=JSON.parse(process.env.OMNI_CONFIG||'{}'), devices=JSON.parse(process.env.OMNI_DEVICES||'[]');
+const cfg=JSON.parse(process.env.OMNI_CONFIG||'{}'), devices=JSON.parse(process.env.OMNI_DEVICES_FILE?fs.readFileSync(process.env.OMNI_DEVICES_FILE,'utf8'):process.env.OMNI_DEVICES||'[]');
 if(process.env.OMNI_REGISTRY_URL&&process.env.OMNI_REGISTRY_TOKEN){try{const u=new URL(process.env.OMNI_REGISTRY_URL);if(u.protocol!=='https:')throw Error('HTTPS required');const r=await fetch(u.href.replace(/\/$/,'')+'/admin/devices',{headers:{Authorization:'Bearer '+process.env.OMNI_REGISTRY_TOKEN},signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Registry HTTP '+r.status);const entries=await r.json();if(!Array.isArray(entries))throw Error('Invalid registry');const seen=new Set(devices.map(d=>d.subscription?.endpoint));for(const d of entries){if(d.subscription?.endpoint&&!seen.has(d.subscription.endpoint)){devices.push(d);seen.add(d.subscription.endpoint)}}}catch(e){console.log('Automatic registry unavailable: '+e.message)}}
 const data=vm.runInNewContext(fs.readFileSync('ephemerides.js','utf8')+'\nDATA');
 const fallback=JSON.parse(fs.readFileSync('fallback.json','utf8'));
-const file='.omni-state/state.json', state=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};
+const stateDir=process.env.OMNI_STATE_DIR||'.omni-state',file=path.join(stateDir,'state.json'), state=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};
 const P=['','Caos','Nacimiento','Forma','Pregunta','Aprendizaje','Justicia','Aceptación','Olvido','Mentira','Dolor','Vacío','Existencia','Amor','Reflexión','Madurez','Recuerdo','Dualidad','Verdad','Reconocimiento','Equilibrio','Calma','Decisión','Orden','Despertar','Responsabilidad','Propósito','Espíritu','Gracia','Nada','Todo','Infinito','Omni'];
 const langs={es:'español rioplatense',en:'English',pt:'português brasileiro'}, stages=['inicio de expansión','aceleración expansiva','expansión intensificada','desaceleración expansiva','inicio de integración','aceleración integrativa','integración intensificada','desaceleración integrativa'];
 const phases={es:['Luna nueva','Cuarto creciente','Luna llena','Cuarto menguante','Luna creciente','Gibosa creciente','Gibosa menguante','Luna menguante'],en:['New moon','First quarter','Full moon','Last quarter','Waxing crescent','Waxing gibbous','Waning gibbous','Waning crescent'],pt:['Lua nova','Quarto crescente','Lua cheia','Quarto minguante','Lua crescente','Gibosa crescente','Gibosa minguante','Lua minguante']};
@@ -27,10 +28,11 @@ for(let l of Object.keys(langs)){let j=await gemini('Idioma: '+langs[l]+'. Gener
 async function makePlan(date,id,zone,lang){let a=slots(date,id).map((m,i)=>{let t=localTime(date,m,zone);if(t===null)return null;let c=context(t);return {i,t,h:Math.floor(m/60),m:m%60,g:c.g,phase:c.phase}}).filter(Boolean);
 let items=a.map(s=>({id:s.i,pisadas:[code(s.h),code(s.m)].filter(Boolean),etapa:stages[s.g],fase:phases.es[s.phase]}));
 let j=await gemini('Idioma: '+langs[lang]+'. Fecha: '+date+'. Generá una frase distinta para cada contexto. JSON objeto: clave id, valor frase. No incluyas numeración. '+JSON.stringify(items));
-for(let s of a)s.text=valid(j?.[s.i])?j[s.i]:local(s.g,lang,s.i);return a}
+let publicBank=null;if(process.env.OMNI_SELF_HOSTED==='true'){try{const r=await fetch('https://raw.githubusercontent.com/zauberfizzt-bot/Omni-lunar/main/resonances.json',{signal:AbortSignal.timeout(5000)});if(r.ok){const x=await r.json();if(Date.now()-Date.parse(x.generatedAt)<48*3600000)publicBank=x.messages?.[lang]}}catch{}}
+for(let s of a){const b=publicBank?.[s.g];s.text=valid(j?.[s.i])?j[s.i]:Array.isArray(b)&&b.length&&valid(b[s.i%b.length])?b[s.i%b.length]:local(s.g,lang,s.i)}return a}
 async function send(d,title,body,tag){try{await push.sendNotification(d.subscription,JSON.stringify({title,body,tag}),{TTL:900,urgency:'normal',timeout:15000});return true}catch(e){console.log('Push status '+(e.statusCode||'network'));return false}}
 function milestones(){let a=data.samples,out=data.phases.map(q=>({t:q[0],phase:q[1]})),map={2:4,92:5,182:6,272:7};for(let i=1;i<a.length;i++){let p=a[i-1][0],q=a[i][0];if(q<p)q+=360;for(let ang of [2,92,182,272]){let k=ang;if(k<p)k+=360;if(k>p&&k<=q&&q>p)out.push({t:data.start+(i-1+(k-p)/(q-p))*21600000,phase:map[ang]})}}return out.filter(x=>Math.abs(x.t-now)<2*DAY)}
-const deliveryFile='delivery-status.json';let previous={};try{previous=JSON.parse(fs.readFileSync(deliveryFile,'utf8'))}catch{};const delivery={updatedAt:new Date(now).toISOString(),devices:{}};let testFailures=0,testSuccess=0;
+const deliveryFile=process.env.OMNI_DELIVERY_FILE||'delivery-status.json';let previous={};try{previous=JSON.parse(fs.readFileSync(deliveryFile,'utf8'))}catch{};const delivery={updatedAt:new Date(now).toISOString(),devices:{}};let testFailures=0,testSuccess=0;
 for(const d of devices){if(d.subscription?.endpoint){const id=crypto.createHash('sha256').update(d.subscription.endpoint).digest('hex').slice(0,24);delivery.devices[id]={registered:true,lastDelivery:previous.devices?.[id]?.lastDelivery||null}}}
 if(devices.length&&cfg.vapidPrivateKey&&cfg.vapidPublicKey){
 push.setVapidDetails('https://zauberfizzt-bot.github.io/Omni-lunar/',cfg.vapidPublicKey,cfg.vapidPrivateKey);
@@ -46,8 +48,8 @@ for(let e of ev){for(let h of [24,1,0]){let at=e.t-h*3600000,key=e.t+'-'+h;if(at
 p.events=p.events.filter(x=>Number(x.split('-')[0])>now-3*DAY);
 }catch{console.log('Device configuration or delivery failed');if(process.env.OMNI_TEST==='true')testFailures++}}
 }else console.log('No registered devices or VAPID configuration yet');
-fs.mkdirSync('.omni-state',{recursive:true});fs.writeFileSync(file,JSON.stringify(state));
+fs.mkdirSync(stateDir,{recursive:true});fs.writeFileSync(file+'.tmp',JSON.stringify(state));fs.renameSync(file+'.tmp',file);
 
-if(JSON.stringify(delivery.devices)!==JSON.stringify(previous.devices)||now-Date.parse(previous.updatedAt||0)>3600000||!previous.updatedAt)fs.writeFileSync(deliveryFile,JSON.stringify(delivery));
+if(JSON.stringify(delivery.devices)!==JSON.stringify(previous.devices)||now-Date.parse(previous.updatedAt||0)>3600000||!previous.updatedAt){fs.writeFileSync(deliveryFile+'.tmp',JSON.stringify(delivery));fs.renameSync(deliveryFile+'.tmp',deliveryFile);}
 console.log('Registered devices: '+Object.keys(delivery.devices).length+'; test accepted: '+testSuccess+'; test failed: '+testFailures);
-await bank();
+if(process.env.OMNI_SELF_HOSTED!=='true')await bank();
