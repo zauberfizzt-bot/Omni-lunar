@@ -16,7 +16,7 @@ on:
       - 'scripts/build-icons.py'
       - '.github/workflows/publish-web.yml'
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
@@ -42,6 +42,15 @@ jobs:
           python scripts/build-icons.py
           mkdir site
           cp index.html web-app.js sw.js install.js ephemerides.js manifest.webmanifest version.json push-config.json icon.svg icon-192.png icon-512.png icon-maskable.png resonances.json delivery-status.json fallback.json .nojekyll site/
+      - name: Persist original-derived launcher icons on main
+        run: |
+          git add icon-512.png icon-maskable.png icon.svg
+          if ! git diff --cached --quiet; then
+            git config user.name 'OMNI Lunar'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'OMNI: synchronize launcher icons with original APK'
+            git push origin HEAD:main || echo 'Concurrent update; packaged icons still correct'
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
