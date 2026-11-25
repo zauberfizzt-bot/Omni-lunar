@@ -41,7 +41,7 @@ jobs:
           python -m pip install Pillow==11.3.0
           python scripts/build-icons.py
           mkdir site
-          cp index.html web-app.js sw.js install.js ephemerides.js manifest.webmanifest version.json push-config.json icon.svg icon-192.png icon-512.png icon-maskable.png resonances.json delivery-status.json fallback.json .nojekyll site/
+          cp index.html web-app.js sw.js install.js ephemerides.js manifest.webmanifest version.json push-config.json icon.svg icon-192.png icon-512.png icon-maskable.png icon-notification.png resonances.json delivery-status.json fallback.json .nojekyll site/
       - name: Persist original-derived launcher icons on main
         run: |
           git add icon-512.png icon-maskable.png icon.svg
