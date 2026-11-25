@@ -1,5 +1,10 @@
 name: OMNI Lunar · Resonancias y avisos
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/dispatch.mjs'
+      - '.github/workflows/omni.yml'
   workflow_dispatch:
     inputs:
       test:
@@ -35,6 +40,7 @@ jobs:
           OMNI_CONFIG: ${{ secrets.OMNI_CONFIG }}
           OMNI_DEVICES: ${{ secrets.OMNI_DEVICES }}
           OMNI_TEST: ${{ inputs.test }}
+          OMNI_FORCE: ${{ github.event_name == 'push' }}
         run: node scripts/dispatch.mjs
       - uses: actions/cache/save@v4
         with:
