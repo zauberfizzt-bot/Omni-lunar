@@ -33,7 +33,7 @@ const copy=btn(tr('Copiar código privado de registro','Copy private registratio
 const check=btn(tr('Comprobar conexión · enviar prueba','Check connection · send test','Verificar conexão · enviar teste'),()=>run(async()=>{if(perm()!=='granted'){await activate();return}await localTest();try{await registryConfig();await sync();if(registryURL&&subscription){if(!remote?.registered){subscription=await subscribeDevice(await ready());remote=await registryCall('register');remoteFresh=true;feedback.textContent+=' '+tr('Registro y prueba remota enviados.','Remote registration and test sent.','Registro e teste remoto enviados.');return}const r=await registryCall('test');remote=r;remoteFresh=true;feedback.textContent+=' '+tr('Prueba remota aceptada por el servicio push.','Remote test accepted by the push service.','Teste remoto aceito pelo serviço push.')}}catch(e){feedback.textContent+=' · '+e.message}if(!remote?.registered)feedback.textContent+=' '+tr('Los avisos remotos todavía no están registrados.','Remote alerts are not registered yet.','Os avisos remotos ainda não estão registrados.')}));
 block.append(enable,disable,test,copy,check);
 
-const VERSION='3.8.11', RELEASE='2026-11-25-update-11';
+const VERSION='3.8.12', RELEASE='2026-11-25-cloudflare-3.8.12';
 const updates=document.createElement('div');updates.className='settingBlock';
 const updateTitle=document.createElement('strong');updateTitle.textContent=tr('Actualizaciones','Updates','Atualizações');
 const updateState=document.createElement('p');updateState.setAttribute('role','status');updateState.setAttribute('aria-live','polite');
