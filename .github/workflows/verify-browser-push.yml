@@ -135,3 +135,25 @@ jobs:
             console.log('Verified Gemini-labelled bank through same-origin web delivery and manual resonance selection');
           }finally{await browser.close()}
           JS
+      - name: Verify resonance feedback and persistence
+        run: |
+          node --input-type=module <<'JS'
+          import {chromium} from 'playwright';
+          import assert from 'node:assert/strict';
+          const browser=await chromium.launch({headless:true});
+          try{const page=await browser.newPage({serviceWorkers:'block',viewport:{width:390,height:844}});
+            await page.goto('https://zauberfizzt-bot.github.io/Omni-lunar/?feedback='+Date.now());
+            await page.waitForFunction(()=>document.querySelector('#resonanceLike span')?.textContent);
+            await page.locator('#resonanceLike').click();
+            await page.waitForFunction(()=>document.querySelector('#resonanceLike').getAttribute('aria-pressed')==='true');
+            await page.locator('#resonanceLibrary').click();
+            await page.waitForFunction(()=>document.querySelectorAll('#favoritesList .om-favorite-card').length===1);
+            await page.reload();
+            await page.locator('#resonanceLibrary').click();
+            await page.waitForFunction(()=>document.querySelectorAll('#favoritesList .om-favorite-card').length===1);
+            await page.locator('#favoritesList .om-favorite-vote').click();
+            await page.waitForFunction(()=>document.querySelectorAll('#favoritesList .om-favorite-card').length===0);
+            assert.equal(await page.evaluate(()=>OMNIFeedback.pick(['Love','Silence'],{calm:10},[],()=>.8)),'Silence');
+            console.log('Verified local favorite, persistence, removal and weighted selection');
+          }finally{await browser.close()}
+          JS

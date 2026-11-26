@@ -25,11 +25,11 @@ jobs:
         run: |
           set -eu
           for i in $(seq 1 24); do
-            if curl -fsS --max-time 10 "$REGISTRY/health" | jq -e '.ok == true and .backend == "cloudflare" and .revision == "3.8.17"' >/dev/null &&
+            if curl -fsS --max-time 10 "$REGISTRY/health" | jq -e '.ok == true and .backend == "cloudflare" and .revision == "3.8.23"' >/dev/null &&
                curl -fsS --max-time 10 -H "Origin: $ORIGIN" -D /tmp/omni-headers "$REGISTRY/config" -o /tmp/omni-config &&
                jq -e '.publicKey | type == "string" and test("^[A-Za-z0-9_-]{87}$")' /tmp/omni-config >/dev/null &&
                grep -qi "^access-control-allow-origin: $ORIGIN" /tmp/omni-headers &&
-               curl -fsS --max-time 15 "$REGISTRY/self-test" | jq -e '.ok == true and .revision == "3.8.17"' >/dev/null; then
+               curl -fsS --max-time 15 "$REGISTRY/self-test" | jq -e '.ok == true and .revision == "3.8.23"' >/dev/null; then
               echo "Worker revision, live encryption and HTTP transport self-test, public key and CORS verified"
               exit 0
             fi
