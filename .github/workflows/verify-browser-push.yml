@@ -61,6 +61,12 @@ jobs:
             assert.equal(await page.locator('#doctrine .stepstone').count(),32);
             assert.equal(await page.locator('#doctrine .doctrine-final').innerText(),l[4]);
             if(lang==='en')assert.equal(await page.locator('#doctrine .doctrine-intro').innerText(),'Every religion, denial, or symbolic form of the spirit is a partial projection of the Whole. None contains the complete truth, yet all touch one of its facets. The mistake is not that they exist, but believing they are the Whole. Only those who see the pattern behind the forms understand the true meaning of each.');
+            await page.evaluate(()=>window.scrollTo(0,document.querySelector('#spiritForms').offsetTop+120));
+            await page.waitForTimeout(350);
+            const position=await page.evaluate(()=>({y:scrollY,top:document.querySelector('#doctrine .doctrine-card:nth-child(3)').getBoundingClientRect().top}));
+            await page.waitForTimeout(1500);
+            const after=await page.evaluate(()=>({y:scrollY,top:document.querySelector('#doctrine .doctrine-card:nth-child(3)').getBoundingClientRect().top}));
+            assert.ok(Math.abs(position.y-after.y)<=2&&Math.abs(position.top-after.top)<=2,'Reading position shifted after scrolling: '+lang);
             await page.locator('#doctrine [data-expand="close"]').click();
             assert.equal(await page.locator('#doctrine details[open]').count(),0);
             await page.locator('#doctrine [data-expand="open"]').click();
