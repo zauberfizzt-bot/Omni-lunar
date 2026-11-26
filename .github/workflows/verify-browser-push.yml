@@ -29,3 +29,40 @@ jobs:
           const browser=await chromium.launch({headless:true});
           try{const page=await browser.newPage({serviceWorkers:'block'});await page.goto(root+'?verify='+Date.now());const result=await page.evaluate(async url=>{const health=await fetch(url+'/health',{cache:'no-store'}).then(r=>r.json());const key=await fetch(url+'/config',{cache:'no-store'}).then(r=>r.json());const probe=await fetch(url+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});return {health,validPublicKey:/^[A-Za-z0-9_-]{87}$/.test(key.publicKey),postStatus:probe.status}},registry);console.log(JSON.stringify(result));if(!result.health.ok||!result.validPublicKey||result.postStatus!==400)throw Error('Browser cannot reach registry correctly');}finally{await browser.close()}
           JS
+      - name: Verify all three knowledge sections in Spanish, English and Portuguese
+        run: |
+          node --input-type=module <<'JS'
+          import {chromium} from 'playwright';
+          import assert from 'node:assert/strict';
+          const root='https://zauberfizzt-bot.github.io/Omni-lunar/';
+          const languages={es:['Propósito de todo omnifractalista','Espejo guía del omnifractalismo','Calendario Omnifractal del Universo (Semiciclo AB)','2 022 d.C.','El omnifractalismo es.'],en:['Purpose of every omnifractalist','Guiding mirror of Omnifractalism','Omnifractal Calendar of the Universe (AB Semicycle)','2,022 CE','Omnifractalism is.'],pt:['Propósito de todo omnifractalista','Espelho-guia do omnifractalismo','Calendário Omnifractal do Universo (Semiciclo AB)','2 022 d.C.','O omnifractalismo é.']};
+          const browser=await chromium.launch({headless:true});
+          try{for(const [lang,l] of Object.entries(languages)){
+            const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block',reducedMotion:'reduce'});
+            await page.addInitScript(lang=>localStorage.setItem('omni-language',lang),lang);
+            await page.goto(root+'?library='+lang+Date.now());
+            assert.equal(await page.locator('.om-portals button').count(),3);
+            for(const id of ['purpose','doctrine','calendar'])assert.ok(await page.locator('.om-portals [data-tab="'+id+'"]').isVisible());
+            await page.locator('.om-portals [data-tab="purpose"]').click();
+            assert.equal(await page.locator('#purpose h2').innerText(),l[0]);
+            await page.locator('.om-portals [data-tab="doctrine"]').click();
+            assert.equal(await page.locator('#doctrine h1').innerText(),l[1]);
+            assert.equal(await page.locator('#doctrine details.doctrine-card').count(),12);
+            assert.equal(await page.locator('#doctrine .stepstone').count(),32);
+            assert.equal(await page.locator('#doctrine .doctrine-final').innerText(),l[4]);
+            if(lang==='en')assert.equal(await page.locator('#doctrine .doctrine-intro').innerText(),'Every religion, denial, or symbolic form of the spirit is a partial projection of the Whole. None contains the complete truth, yet all touch one of its facets. The mistake is not that they exist, but believing they are the Whole. Only those who see the pattern behind the forms understand the true meaning of each.');
+            await page.locator('#doctrine [data-expand="close"]').click();
+            assert.equal(await page.locator('#doctrine details[open]').count(),0);
+            await page.locator('#doctrine [data-expand="open"]').click();
+            assert.equal(await page.locator('#doctrine details[open]').count(),12);
+            await page.locator('.om-portals [data-tab="calendar"]').click();
+            assert.equal(await page.locator('#calendar h1').innerText(),l[2]);
+            assert.equal(await page.locator('#calendar .om-era').count(),20);
+            assert.equal(await page.locator('#calendar .om-era').nth(13).locator('time').innerText(),l[3]);
+            assert.equal(await page.locator('#calendar .om-era-zero .om-era-code').innerText(),'AB.E0Ω.AN');
+            await page.locator('#calendar .om-back').click();
+            assert.ok(await page.locator('#cycle').isVisible());
+            console.log('Verified '+lang+' — purpose, 12 perspectives, 32 footsteps, 20 eras, navigation and disclosure controls');
+            await page.close();
+          }}finally{await browser.close()}
+          JS
