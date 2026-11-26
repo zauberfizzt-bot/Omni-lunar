@@ -63,6 +63,7 @@ jobs:
             if(lang==='en')assert.equal(await page.locator('#doctrine .doctrine-intro').innerText(),'Every religion, denial, or symbolic form of the spirit is a partial projection of the Whole. None contains the complete truth, yet all touch one of its facets. The mistake is not that they exist, but believing they are the Whole. Only those who see the pattern behind the forms understand the true meaning of each.');
             await page.evaluate(()=>window.scrollTo(0,document.querySelector('#spiritForms').offsetTop+120));
             await page.waitForTimeout(350);
+            const glassGeometry=await page.locator('#spiritForms').evaluate(panel=>{const l=panel.querySelector(':scope > .omni-glass-optic'),p=panel.getBoundingClientRect(),r=l.getBoundingClientRect(),style=getComputedStyle(l);return {local:l.parentElement===panel,clipped:style.overflow==='hidden'&&style.borderRadius===getComputedStyle(panel).borderRadius,aligned:Math.abs(p.left-r.left)<=2&&Math.abs(p.top-r.top)<=2&&Math.abs(p.right-r.right)<=2&&Math.abs(p.bottom-r.bottom)<=2}});assert.ok(glassGeometry.local&&glassGeometry.clipped&&glassGeometry.aligned,'Optical layer must follow and clip to its own panel');
             const position=await page.evaluate(()=>({y:scrollY,top:document.querySelector('#doctrine .doctrine-card:nth-child(3)').getBoundingClientRect().top}));
             await page.waitForTimeout(1500);
             const after=await page.evaluate(()=>({y:scrollY,top:document.querySelector('#doctrine .doctrine-card:nth-child(3)').getBoundingClientRect().top}));
