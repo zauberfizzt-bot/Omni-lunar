@@ -33,7 +33,7 @@ const copy=btn(tr('Copiar código privado de registro','Copy private registratio
 const check=btn(tr('Enviar prueba REMOTA','Send REMOTE test','Enviar teste REMOTO'),()=>run(async()=>{localStorage.removeItem('omni-push-off');if(perm()!=='granted'){await activate();return}if(!await registryConfig())throw Error(tr('Servidor remoto no disponible. ','Remote server unavailable. ','Servidor remoto indisponível. ')+registryError);const r=await ready();subscription=await subscribeDevice(r);await checkRemote();if(!remote?.registered||!remote?.nextDelivery){remote=await registryCall('register')}else{remote=await registryCall('test')}remoteFresh=true;feedback.textContent=tr('Prueba remota aceptada por el servicio push. Buscá el aviso «OMNI Lunar · WEB».','Remote test accepted by the push service. Look for “OMNI Lunar · WEB”.','Teste remoto aceito pelo serviço push. Procure “OMNI Lunar · WEB”.')}));
 block.append(enable,disable,test,copy,check);
 
-const VERSION='3.8.18', RELEASE='2026-11-26-fluid-scroll-3.8.18';
+const VERSION='3.8.19', RELEASE='2026-11-26-scroll-position-3.8.19';
 const updates=document.createElement('div');updates.className='settingBlock';
 const updateTitle=document.createElement('strong');updateTitle.textContent=tr('Actualizaciones','Updates','Atualizações');
 const updateState=document.createElement('p');updateState.setAttribute('role','status');updateState.setAttribute('aria-live','polite');
