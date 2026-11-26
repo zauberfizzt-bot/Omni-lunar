@@ -48,6 +48,16 @@ jobs:
             await page.locator('.om-portals [data-tab="doctrine"]').click();
             assert.equal(await page.locator('#doctrine h1').innerText(),l[1]);
             assert.equal(await page.locator('#doctrine details.doctrine-card').count(),12);
+            assert.equal(await page.locator('#doctrine .om-emblem svg').count(),12);
+            assert.equal(await page.locator('#doctrine .om-perspective-label h3').first().innerText(),({es:'Cristianismo',en:'Christianity',pt:'Cristianismo'})[lang]);
+            for(const width of [360,390,768]){
+              await page.setViewportSize({width,height:844});
+              const card=page.locator('#doctrine details.doctrine-card').nth(7);
+              const summary=card.locator('summary');
+              for(let i=0;i<3;i++){await summary.click();assert.equal(await card.evaluate(e=>e.open),false);assert.equal(await card.locator('.om-detail').isVisible(),false);await summary.click();assert.equal(await card.evaluate(e=>e.open),true);assert.equal(await card.locator('.om-detail p').isVisible(),true);}
+              assert.ok(await page.locator('#doctrine').evaluate(e=>e.scrollWidth<=e.clientWidth+2));
+            }
+            await page.setViewportSize({width:390,height:844});
             assert.equal(await page.locator('#doctrine .stepstone').count(),32);
             assert.equal(await page.locator('#doctrine .doctrine-final').innerText(),l[4]);
             if(lang==='en')assert.equal(await page.locator('#doctrine .doctrine-intro').innerText(),'Every religion, denial, or symbolic form of the spirit is a partial projection of the Whole. None contains the complete truth, yet all touch one of its facets. The mistake is not that they exist, but believing they are the Whole. Only those who see the pattern behind the forms understand the true meaning of each.');
